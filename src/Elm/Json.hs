@@ -14,11 +14,12 @@ module Elm.Json
     )
 where
 
-import Data.List
-import Data.Aeson.Types (SumEncoding(..))
+import           Data.Aeson.Types (SumEncoding (..))
+import           Data.List
 
-import Elm.TyRep
-import Elm.Utils
+import           Elm.TyRep
+import           Elm.Utils
+
 
 data MaybeHandling = Root | Leaf
                    deriving Eq
@@ -29,7 +30,7 @@ jsonParserForType = jsonParserForType' Leaf
 
 isOption :: EType -> Bool
 isOption (ETyApp (ETyCon (ETCon "Maybe")) _) = True
-isOption _ = False
+isOption _                                   = False
 
 jsonParserForType' :: MaybeHandling -> EType -> String
 jsonParserForType' mh ty =
@@ -39,6 +40,7 @@ jsonParserForType' mh ty =
       ETyCon (ETCon "Float") -> "Json.Decode.float"
       ETyCon (ETCon "String") -> "Json.Decode.string"
       ETyCon (ETCon "Bool") -> "Json.Decode.bool"
+      ETyCon (ETCon "Posix") -> "Iso8601.decoder"
       ETyCon (ETCon c) -> "jsonDec" ++ c
       ETyApp (ETyCon (ETCon "List")) t' -> "Json.Decode.list (" ++ jsonParserForType t' ++ ")"
       ETyApp (ETyCon (ETCon "Maybe")) t' -> if mh == Root
@@ -47,6 +49,8 @@ jsonParserForType' mh ty =
       ETyApp (ETyCon (ETCon "Set")) t' -> "decodeSet (" ++ jsonParserForType t' ++ ")"
       ETyApp (ETyApp (ETyCon (ETCon "Dict")) (ETyCon (ETCon "String")) ) value -> "Json.Decode.dict (" ++ jsonParserForType value ++ ")"
       ETyApp (ETyApp (ETyCon (ETCon "Dict")) key) value -> "decodeMap (" ++ jsonParserForType key ++ ") (" ++ jsonParserForType value ++ ")"
+      ETyApp (ETyCon (ETCon "Entity")) (ETyCon (ETCon c)) -> "jsonDecEntity" ++ c
+      ETyApp (ETyCon (ETCon "Key")) _ -> "Json.Decode.int"
       _ ->
           case unpackTupleType ty of
             [] -> error $ "This should never happen. Failed to unpackTupleType: " ++ show ty
@@ -170,6 +174,7 @@ jsonSerForType' omitnull ty =
       ETyCon (ETCon "Float") -> "Json.Encode.float"
       ETyCon (ETCon "String") -> "Json.Encode.string"
       ETyCon (ETCon "Bool") -> "Json.Encode.bool"
+      ETyCon (ETCon "Posix") -> "Iso8601.encode"
       ETyCon (ETCon c) -> "jsonEnc" ++ c
       ETyApp (ETyCon (ETCon "List")) t' -> "(Json.Encode.list " ++ jsonSerForType t' ++ ")"
       ETyApp (ETyCon (ETCon "Maybe")) t' -> if omitnull
@@ -177,6 +182,8 @@ jsonSerForType' omitnull ty =
                                                 else "(maybeEncode (" ++ jsonSerForType t' ++ "))"
       ETyApp (ETyCon (ETCon "Set")) t' -> "(encodeSet " ++ jsonSerForType t' ++ ")"
       ETyApp (ETyApp (ETyCon (ETCon "Dict")) key) value -> "(encodeMap (" ++ jsonSerForType key ++ ") (" ++ jsonSerForType value ++ "))"
+      ETyApp (ETyCon (ETCon "Entity")) (ETyCon (ETCon c)) -> "jsonEncEntity" ++ c
+      ETyApp (ETyCon (ETCon "Key")) _ -> "Json.Encode.int"
       _ ->
           case unpackTupleType ty of
             [] -> error $ "This should never happen. Failed to unpackTupleType: " ++ show ty
@@ -208,7 +215,7 @@ jsonSerForDef etd =
           ++ "\n   ]\n"
       ETypeSum (ESum name opts (SumEncoding' se) _ unarystring) ->
         case allUnaries unarystring opts of
-            Nothing -> defaultEncoding opts
+            Nothing   -> defaultEncoding opts
             Just strs -> unaryEncoding strs
           where
               encodeFunction = case se of

@@ -3,13 +3,15 @@
 -}
 module Elm.TyRep where
 
-import Data.List
-import Data.Proxy
-import Data.Typeable (Typeable, TyCon, TypeRep, splitTyConApp, tyConName, typeRep, typeRepTyCon)
+import           Data.List
+import           Data.Proxy
+import           Data.Typeable    (TyCon, TypeRep, Typeable, splitTyConApp,
+                                   tyConName, typeRep, typeRepTyCon)
 
-import Data.Aeson.Types (SumEncoding(..))
-import Data.Monoid ((<>))
-import Data.Maybe (fromMaybe)
+import           Data.Aeson.Types (SumEncoding (..))
+import           Data.Maybe       (fromMaybe)
+import           Data.Monoid      ((<>))
+
 
 -- | Type definition, including constructors.
 data ETypeDef
@@ -64,10 +66,10 @@ data EPrimAlias
 
 data EAlias
    = EAlias
-   { ea_name :: ETypeName
-   , ea_fields :: [(String, EType)]
-   , ea_omit_null :: Bool
-   , ea_newtype   :: Bool
+   { ea_name         :: ETypeName
+   , ea_fields       :: [(String, EType)]
+   , ea_omit_null    :: Bool
+   , ea_newtype      :: Bool
    , ea_unwrap_unary :: Bool
    } deriving (Show, Eq, Ord)
 
@@ -80,7 +82,7 @@ isNamed :: SumTypeFields -> Bool
 isNamed s =
     case s of
       Named _ -> True
-      _ -> False
+      _       -> False
 
 data SumTypeConstructor
     = STC
@@ -88,7 +90,7 @@ data SumTypeConstructor
     , _stcEncoded :: String
     , _stcFields  :: SumTypeFields
     } deriving (Show, Eq, Ord)
-    
+
 data ESum
     = ESum
     { es_name          :: ETypeName
@@ -185,7 +187,7 @@ toElmType ty = toElmType' $ typeRep ty
           where
             isTuple' :: String -> Bool
             isTuple' (')':xs') = all (== ',') xs'
-            isTuple' _ = False
+            isTuple' _         = False
         isTuple _ = False
 
         typeApplication :: TyCon -> [TypeRep] -> EType
